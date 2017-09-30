@@ -1,0 +1,21 @@
+{
+  "name": "flashair-transfer",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:PrailNet/FlashAir-Transfer.git",
+  "author": "Noah Prail <nprail@filiosoft.com>",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "async": "^2.5.0",
+    "dotenv": "^4.0.0",
+    "request": "^2.83.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "devDependencies": {
+    "nodemon": "^1.12.1"
+  }
+}
