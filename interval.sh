@@ -1,3 +1,4 @@
+mkdir dl
 trap "break;exit" SIGHUP SIGINT SIGTERM
 sleep 1s
 while /bin/true; do

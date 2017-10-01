@@ -5,13 +5,17 @@ const async = require('async');
 require('dotenv').config()
 const env = process.env;
 
-function downloadImage(address) {
+function downloadImage(address, filename) {
     var r = request(address);
 
     r.on('response', function (res) {
-        var filepath = './dl/' + res.headers.date + '.' + res.headers['content-type'].split('/')[1];
-        console.log(filepath);
-        res.pipe(fs.createWriteStream(filepath));
+        var filepath = `./dl/${filename}`;
+        console.log(`\nDownloading ${filename} to ${filepath}`);
+
+        var stream = res.pipe(fs.createWriteStream(filepath));
+        stream.on('finish', function () {
+            console.log(`Finished downloading ${filepath}\n`);
+        });
     });
 }
 
@@ -23,7 +27,8 @@ function getAllImages(filename) {
 
         var lines = body.split('\r\n')
         var q = async.queue(function (task, done) {
-            downloadImage(task.url);
+            downloadImage(task.url, task.filename);
+            done();
         });
         for (var i = 0, len = lines.length; i < len; i++) {
             var line = lines[i];
@@ -35,16 +40,15 @@ function getAllImages(filename) {
                 var filename = splitLine[1];
 
                 if (filename) {
-                    console.log(`\nStarting download on ${directory}/${filename}`);
                     var fullPath = `${env.BASE_URL}${directory}/${filename}`;
                     console.log(fullPath);
                     q.push({
-                        url: fullPath
+                        url: fullPath,
+                        filename: filename
                     }, function (err) {
                         if (err) {
                             console.log(`ERROR: ${err}`);
                         }
-                        console.log(`Finished downloading ${fullPath}\n`);
                     });
                 }
             }
