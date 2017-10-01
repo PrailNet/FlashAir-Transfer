@@ -6,16 +6,23 @@ require('dotenv').config()
 const env = process.env;
 
 function downloadImage(address, filename) {
-    var r = request(address);
+    return new Promise(function (resolve, reject) {
 
-    r.on('response', function (res) {
-        var filepath = `./dl/${filename}`;
-        console.log(`\nDownloading ${filename} to ${filepath}`);
+        var r = request(address);
 
-        var stream = res.pipe(fs.createWriteStream(filepath));
-        stream.on('finish', function () {
-            console.log(`Finished downloading ${filepath}\n`);
+        r.on('response', function (res) {
+            var filepath = `./dl/${filename}`;
+            console.log(`\nDownloading ${filename} to ${filepath}`);
+
+            var stream = res.pipe(fs.createWriteStream(filepath));
+            stream.on('finish', function () {
+                console.log(`Finished downloading ${filepath}\n`);
+                resolve();
+            });
+        
+
         });
+
     });
 }
 
@@ -27,9 +34,11 @@ function getAllImages(filename) {
 
         var lines = body.split('\r\n')
         var q = async.queue(function (task, done) {
-            downloadImage(task.url, task.filename);
-            done();
+            downloadImage(task.url, task.filename).then(function () {
+                done();
+            });
         });
+
         for (var i = 0, len = lines.length; i < len; i++) {
             var line = lines[i];
 
