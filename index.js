@@ -1,5 +1,6 @@
 const request = require('request');
 const fs = require('fs');
+const fse = require('fs-extra');
 const async = require('async');
 var JPEGDecoder = require('jpg-stream/decoder');
 
@@ -10,9 +11,24 @@ require('dotenv').config()
 const env = process.env;
 
 const basePath = env.BASE_PATH || './dl';
+const destPath = env.DEST_PATH || './dest'
 
 if (!fs.existsSync(basePath)) {
     fs.mkdirSync(basePath);
+}
+
+const prefilightCheck = () => {
+    request(`${env.BASE_URL}/command.cgi?op=102`, (err, res, body) => {
+        if (err) throw err;
+
+        if (body === '1') {
+            console.log('Updates')
+        }
+        if (body === '0') {
+            console.log('No updates')
+        }
+        console.log(`Update Status: ${body}`)
+    })
 }
 
 function downloadImage(address, filename) {
@@ -88,22 +104,33 @@ function generateFilename(metadata, filename) {
         date: moment(metadata.exif.DateTimeOriginal).format('YYYY-MM-DD'),
         year: moment(metadata.exif.DateTimeOriginal).format('YYYY')
     }
-    return `${meta.year}/${meta.date}/${filename}`;
+    let path = `${destPath}/${meta.year}/${meta.date}`;
+    return {
+        fullname: `${path}/${filename}`,
+        fullpath: path
+    };
 }
 
-function moveImage(sourceFilename, destinationFilename) {
-    fs.copyFile(sourceFilename, destinationFilename, (err) => {
-        if (err) throw err;
-        console.log(`${sourceFilename} was copied to ${destinationFilename}`);
+function moveImage(sourceFilename, destination) {
+    fse.ensureDir(destination.fullpath)
+        .then(() => {
+            console.log('Created file structure...')
 
-        fs.unlink(sourceFilename, (err) => {
-            if (err) throw err;
-            console.log(`Deleted ${sourceFilename}`);
-        });
-    });
+            fse.move(sourceFilename, destination.fullname)
+                .then(() => {
+                    console.log(`Moved ${sourceFilename} to ${destination.fullname}`);
+                })
+                .catch(err => {
+                    throw err;
+                })
+        })
+        .catch(err => {
+            throw err;
+        })
 }
 
 function deleteImageFromCard(filename) {
+    console.log(`Deleting ${filename} from card...`)
     request(`${env.BASE_URL}/upload.cgi?DEL=/DCIM/${filename}`, (err, res, body) => {
         if (err) throw err;
         if (body === 'ERROR') throw body;
@@ -153,6 +180,7 @@ function getAllImages(filename) {
     })
 }
 
+prefilightCheck()
 
 request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM`, function (error, response, body) {
     if (error) {
