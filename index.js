@@ -30,11 +30,12 @@ function downloadImage(address, filename) {
             stream.on('finish', function () {
                 console.log(`Finished downloading ${localFileName}\n`);
 
-                //TODO
-                var metaData = readImageMetaData(localFileName);
-                var finalFileName = generateFilename(metaData);
-                moveImage(localFileName, finalFileName);
-                deleteImageFromCard(filename);
+                readImageMetaData(localFileName).then(function (metaData) {
+                    console.info(metaData);
+                    var finalFileName = generateFilename(metaData, filename);
+                    moveImage(localFileName, finalFileName);
+                    deleteImageFromCard(filename);
+                });
 
 
                 resolve();
@@ -52,19 +53,34 @@ function generateTempFilename(filename) {
 }
 
 function readImageMetaData(filename) {
-    fs.createReadStream('in.jpg')
-        .pipe(new JPEGDecoder)
-        .on('meta', function (meta) {
-            // meta contains an exif object as decoded by
-            // https://github.com/devongovett/exif-reader
-        })
-        .pipe(concat(function (frames) {
-            // frames is an array of frame objects (one for JPEGs)
-            // each element has a `pixels` property containing
-            // the raw RGB pixel data for that frame, as
-            // well as the width, height, etc.
-        }));
-    //TODO
+    return new Promise(function (resolve, reject) {
+
+        if (filename.match(/\.jpg\.xfer$/i)) {
+            // for JPEG files:
+            fs.createReadStream(filename)
+                .pipe(new JPEGDecoder)
+                .on('meta', function (meta) {
+                    resolve(meta);
+                    // meta contains an exif object as decoded by
+                    // https://github.com/devongovett/exif-reader
+                });
+            return;
+        }
+
+
+        // for video:
+        if (filename.match(/\.mov\.xfer$/i)) {
+            //TODO
+            return;
+        }
+
+        // for raw:
+        if (filename.match(/\.raw\.xfer$/i)) {
+            //TODO
+            return;
+        }
+    });
+
 }
 
 function generateFilename(metadata, filename) {
