@@ -3,9 +3,16 @@ const fs = require('fs');
 const async = require('async');
 var JPEGDecoder = require('jpg-stream/decoder');
 
+const axios = require('axios');
 
 require('dotenv').config()
 const env = process.env;
+
+const basePath = env.BASE_PATH || './dl';
+
+if (!fs.existsSync(basePath)) {
+    fs.mkdirSync(basePath);
+}
 
 function downloadImage(address, filename) {
 
