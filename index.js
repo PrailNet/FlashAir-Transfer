@@ -26,33 +26,32 @@ const prefilightCheck = () => {
 
 function downloadImage(address, filename, timestamp) {
 
-    return new Promise(function (resolve, reject) {
-        axios.get({
-                method: 'get',
-                url: address,
-                responseType: 'stream'
-            })
-            .then(res => {
-                const localFileName = generateTempFilename(filename);
+    return axios({
+        method: 'get',
+        url: address,
+        responseType: 'stream'
+    })
+        .then(res => {
+            const localFileName = generateTempFilename(filename);
 
-                console.log(`\nDownloading ${filename} to ${localFileName}`);
+            console.log(`\nDownloading ${filename} to ${localFileName}`);
 
-                const stream = response.data.pipe(fs.createWriteStream(localFileName));
-                stream.on('finish', () => {
-                    console.log(`Finished downloading ${localFileName}\n`);
+            const stream = res.data.pipe(fs.createWriteStream(localFileName));
+            stream.on('finish', () => {
+                console.log(`Finished downloading ${localFileName}\n`);
 
-                    const finalFileName = generateFilename(timestamp, filename);
-                    moveImage(localFileName, finalFileName)
-                        .then(() => resolve())
-                        .catch((ex) => {});
+                const finalFileName = generateFilename(timestamp, filename);
+                moveImage(localFileName, finalFileName)
+                    .then(() => resolve())
+                    .catch((ex) => { });
 
-                    //resolve();
-                });
-            })
-            .catch(err => {
-                reject(err);
+                //resolve();
             });
-    });
+        })
+    //         .catch(err => {
+    //             reject(err);
+    //         });
+    // });
 }
 
 function generateTempFilename(filename) {
@@ -86,7 +85,9 @@ function moveImage(sourceFilename, destination) {
                     });
                 })
                 .catch(err => {
-                    throw err;
+                    if (err.code !== "EEXIST") {
+                        throw err;
+                    }
                 })
         })
         .catch(err => {
@@ -119,12 +120,13 @@ function timestampFromCardInfo(date, time) {
     return (date << 16) | time;
 }
 
-function readLastItemTransferTimestamp() {}
+function readLastItemTransferTimestamp() { }
 
-function writeLastItemTransferTimestamp(ts) {}
+function writeLastItemTransferTimestamp(ts) { }
 
 function processImagesFromFolderOnCard(filename, taskList) {
-    axios.get(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM/${filename}`)
+
+    return axios.get(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM/${filename}`)
         .then(res => {
             const body = res.data;
             //console.info(body);
@@ -158,16 +160,24 @@ function processImagesFromFolderOnCard(filename, taskList) {
 
             }
         })
-        .catch(err => {
-            throw err;
-        });
+    // .catch(err => {
+    //     throw err;
+    // });
 }
 
 const processFoldersOnCard = () => {
+
+    var taskList = [];
+
+    var folderQueue = async.queue((task, done) => {
+        processImagesFromFolderOnCard(task.filename, taskList)
+            .then(() => { done(); })
+            .catch(err => { throw err });
+    });
+
     axios.get(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM`)
         .then(res => {
             const body = res.data;
-            var taskList = [];
             var lines = body.split('\r\n')
 
             for (var i = 0, len = lines.length; i < len; i++) {
@@ -184,19 +194,31 @@ const processFoldersOnCard = () => {
 
                     if (attribute === '16' && filename !== 'EOSMISC') {
                         console.log(`Folder ${filename}`);
-                        processImagesFromFolderOnCard(filename, taskList);
+                        folderQueue.push({ filename: filename });
                     }
                 }
             }
 
-            // tasks:
         })
         .catch(err => {
             throw err;
         });
+
+    folderQueue.drain = () => {
+        console.log("drained")
+        startDownloads(taskList);
+    };
+    folderQueue.empty = () => {
+        console.log("empty")
+    };
+    folderQueue.started = () => {
+        console.log("started")
+    };
 }
 
 function startDownloads(taskList) {
+    console.log("starting download process");
+
     var q = async.queue(function (task, done) {
         downloadImage(task.url, task.filename, task.timestamp)
             .then(function () {
@@ -209,6 +231,7 @@ function startDownloads(taskList) {
 
     q.push(taskList);
 
+    // listed for drain event - signal downloads completed
 }
 
 const runAll = () => {
