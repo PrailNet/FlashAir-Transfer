@@ -1,8 +1,8 @@
-const request = require('request');
 const fs = require('fs');
 const fse = require('fs-extra');
 const async = require('async');
 const moment = require('moment');
+const axios = require('axios');
 
 require('dotenv').config()
 const env = process.env;
@@ -15,50 +15,45 @@ if (!fs.existsSync(basePath)) {
 }
 
 const prefilightCheck = () => {
-    return new Promise((resolve, reject) => {
-
-        request(`${env.BASE_URL}/command.cgi?op=102`, (err, res, body) => {
-            if (err) reject(err);
-            resolve(body);
+    return axios.get(`${env.BASE_URL}/command.cgi?op=102`)
+        .then(res => {
+            return res.data;
         })
-    })
+        .catch(err => {
+            return err;
+        })
 }
 
 function downloadImage(address, filename, timestamp) {
 
     return new Promise(function (resolve, reject) {
+        axios.get(address)
+            .then(res => {
+                const localFileName = generateTempFilename(filename);
 
-        var r = request(address);
-        var localFileName = generateTempFilename(filename);
+                console.log(`\nDownloading ${filename} to ${localFileName}`);
 
-        r.on('response', function (res) {
-            console.log(`\nDownloading ${filename} to ${localFileName}`);
+                const stream = response.data.pipe(fs.createWriteStream(localFileName));
+                stream.on('finish', () => {
+                    console.log(`Finished downloading ${localFileName}\n`);
 
+                    const finalFileName = generateFilename(timestamp, filename);
+                    moveImage(localFileName, finalFileName)
+                        .then(() => resolve())
+                        .catch((ex) => {});
 
-            var stream = res.pipe(fs.createWriteStream(localFileName));
-            stream.on('finish', function () {
-                console.log(`Finished downloading ${localFileName}\n`);
-
-                var finalFileName = generateFilename(timestamp, filename);
-                moveImage(localFileName, finalFileName)
-                    .then(() => { resolve() })
-                    .catch((ex) => { });
-
-                //resolve();
+                    //resolve();
+                });
+            })
+            .catch(err => {
+                reject(err);
             });
-
-
-
-        });
-
     });
 }
 
 function generateTempFilename(filename) {
     return `${basePath}/${filename}.xfer`;
 }
-
-
 
 function generateFilename(timestamp, filename) {
     const meta = {
@@ -80,9 +75,11 @@ function moveImage(sourceFilename, destination) {
             fse.move(sourceFilename, destination.fullname)
                 .then(() => {
                     console.log(`Moved ${sourceFilename} to ${destination.fullname}`);
-                    deleteImageFromCard(sourceFilename)
-                        .then(() => { resolve(); })
-                        .catch(err => { throw err; });
+                    deleteImageFromCard(sourceFilename).then(() => {
+                        resolve();
+                    }).catch(err => {
+                        throw err;
+                    });
                 })
                 .catch(err => {
                     throw err;
@@ -94,15 +91,16 @@ function moveImage(sourceFilename, destination) {
 }
 
 function deleteImageFromCard(filename) {
-    return new Promise(function (resolve, reject) {
-        console.log(`Deleting ${filename} from card...`)
-        request(`${env.BASE_URL}/upload.cgi?DEL=/DCIM/${filename}`, (err, res, body) => {
-            if (err) reject(err);
-            if (body === 'ERROR') reject(body);
-            console.log(body)
-            resolve();
-        });
-    });
+    console.log(`Deleting ${filename} from card...`)
+
+    return axios.get(`${env.BASE_URL}/upload.cgi?DEL=/DCIM/${filename}`)
+        .then(res => {
+            if (res.data === 'ERROR') throw new Error('ERROR')
+            return res.data
+        })
+        .catch(err => {
+            throw err;
+        })
 }
 
 function dateFromCardInfo(date, time) {
@@ -113,93 +111,85 @@ function dateFromCardInfo(date, time) {
     return new Date(year, month - 1, day);
 }
 
-function timestampFromCardInfo(date,time) {
+function timestampFromCardInfo(date, time) {
     return (date << 16) | time;
 }
 
-function readLastItemTransferTimestamp()
-{
+function readLastItemTransferTimestamp() {}
 
-
-}
-
-function writeLastItemTransferTimestamp(ts)
-{
-
-}
+function writeLastItemTransferTimestamp(ts) {}
 
 function processImagesFromFolderOnCard(filename, taskList) {
-    request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM/${filename}`, function (error, response, body) {
-        
-        if (error) {
-            return console.log('error:', error); // Print the error if one occurred
-        }
+    axios.get(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM/${filename}`)
+        .then(res => {
+            const body = res.data;
+            //console.info(body);
 
-        console.info(body);
+            var lines = body.split('\r\n')
 
-        var lines = body.split('\r\n')
+            for (var i = 0, len = lines.length; i < len; i++) {
+                var line = lines[i];
 
-        for (var i = 0, len = lines.length; i < len; i++) {
-            var line = lines[i];
+                if (line !== 'WLANSD_FILELIST') {
 
-            if (line !== 'WLANSD_FILELIST') {
+                    var splitLine = line.split(',');
+                    var directory = splitLine[0];
+                    var filename = splitLine[1];
 
-                var splitLine = line.split(',');
-                var directory = splitLine[0];
-                var filename = splitLine[1];
+                    var date = splitLine[4];
+                    var time = splitLine[5];
 
-                var date = splitLine[4];
-                var time = splitLine[5];
+                    var timestamp = dateFromCardInfo(date, time);
 
-                var timestamp = dateFromCardInfo(date, time);
-
-                if (filename) {
-                    var fullPath = `${env.BASE_URL}${directory}/${filename}`;
-                    console.log(fullPath);
-                    taskList.push({
-                        url: fullPath,
-                        filename: filename,
-                        timestamp: timestamp
-                    });
+                    if (filename) {
+                        var fullPath = `${env.BASE_URL}${directory}/${filename}`;
+                        console.log(fullPath);
+                        taskList.push({
+                            url: fullPath,
+                            filename: filename,
+                            timestamp: timestamp
+                        });
+                    }
                 }
-            }
 
-        }
-    })
+            }
+        })
+        .catch(err => {
+            throw err;
+        });
 }
 
 const processFoldersOnCard = () => {
-    request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM`, function (error, response, body) {
-        if (error) {
-            return console.log('error:', error); // Print the error if one occurred
-        }
+    axios.get(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM`)
+        .then(res => {
+            const body = res.data;
+            var taskList = [];
+            var lines = body.split('\r\n')
 
-        var taskList = [];
-        var lines = body.split('\r\n')
+            for (var i = 0, len = lines.length; i < len; i++) {
+                var line = lines[i].trim();
+                if (line !== 'WLANSD_FILELIST') {
 
-        for (var i = 0, len = lines.length; i < len; i++) {
-            var line = lines[i].trim();
-            if (line !== 'WLANSD_FILELIST') {
+                    var splitLine = line.split(',');
+                    var directory = splitLine[0];
+                    var filename = splitLine[1];
+                    var size = splitLine[2];
+                    var attribute = splitLine[3];
+                    var date = splitLine[4];
+                    var time = splitLine[5];
 
-                var splitLine = line.split(',');
-                var directory = splitLine[0];
-                var filename = splitLine[1];
-                var size = splitLine[2];
-                var attribute = splitLine[3];
-                var date = splitLine[4];
-                var time = splitLine[5];
-
-                if (attribute === '16' && filename !== 'EOSMISC') {
-                    console.log(`Folder ${filename}`);
-                    processImagesFromFolderOnCard(filename, taskList);
+                    if (attribute === '16' && filename !== 'EOSMISC') {
+                        console.log(`Folder ${filename}`);
+                        processImagesFromFolderOnCard(filename, taskList);
+                    }
                 }
             }
-        }
 
-        // tasks:
-        
-
-    });
+            // tasks:
+        })
+        .catch(err => {
+            throw err;
+        });
 }
 
 function startDownloads(taskList) {
@@ -217,21 +207,21 @@ function startDownloads(taskList) {
 
 }
 
-
 const runAll = () => {
-    prefilightCheck().then((status) => {
-        if (status === '1') {
-            console.log('Updates')
-            processFoldersOnCard();
-        } else {
-            console.log('No updates')
-            processFoldersOnCard();
-        }
-    })
+    prefilightCheck()
+        .then((status) => {
+            if (status === '1') {
+                console.log('Updates\n')
+                processFoldersOnCard();
+            } else {
+                console.log('No updates\n')
+                processFoldersOnCard();
+            }
+        })
         .catch((err) => {
             console.log('Card seems to be unavailable')
         })
 }
 
 runAll();
-const schedule = setInterval(runAll, 15000);
+//const schedule = setInterval(runAll, 15000);
