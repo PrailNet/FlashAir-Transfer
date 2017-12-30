@@ -163,41 +163,45 @@ function getAllImages(filename) {
     })
 }
 
+const getImages = () => {
+    request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM`, function (error, response, body) {
+        if (error) {
+            return console.log('error:', error); // Print the error if one occurred
+        }
+
+        var lines = body.split('\r\n')
+
+        for (var i = 0, len = lines.length; i < len; i++) {
+            var line = lines[i].trim();
+            if (line !== 'WLANSD_FILELIST') {
+
+                var splitLine = line.split(',');
+                var directory = splitLine[0];
+                var filename = splitLine[1];
+                var size = splitLine[2];
+                var attribute = splitLine[3];
+                var date = splitLine[4];
+                var time = splitLine[5];
+
+                if (attribute === '16' && filename !== 'EOSMISC') {
+                    console.log(`Folder ${filename}`);
+                    getAllImages(filename);
+                }
+            }
+        }
+    });
+}
 
 const runAll = () => {
     prefilightCheck().then((status) => {
-        if (status === '1') {
-            console.log('Updates')
-            request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM`, function (error, response, body) {
-                if (error) {
-                    return console.log('error:', error); // Print the error if one occurred
-                }
-
-                var lines = body.split('\r\n')
-
-                for (var i = 0, len = lines.length; i < len; i++) {
-                    var line = lines[i].trim();
-                    if (line !== 'WLANSD_FILELIST') {
-
-                        var splitLine = line.split(',');
-                        var directory = splitLine[0];
-                        var filename = splitLine[1];
-                        var size = splitLine[2];
-                        var attribute = splitLine[3];
-                        var date = splitLine[4];
-                        var time = splitLine[5];
-
-                        if (attribute === '16' && filename !== 'EOSMISC') {
-                            console.log(`Folder ${filename}`);
-                            getAllImages(filename);
-                        }
-                    }
-                }
-            });
-        } else {
-            console.log('No updates')
-        }
-    })
+            if (status === '1') {
+                console.log('Updates')
+                getImages();
+            } else {
+                console.log('No updates')
+                getImages();
+            }
+        })
         .catch((err) => {
             console.log('Card seems to be unavailable')
         })
