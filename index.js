@@ -88,9 +88,10 @@ function moveImage(sourceFilename, destinationFilename) {
 }
 
 function deleteImageFromCard(filename) {
-    fs.unlink(filename, (err) => {
+    request(`${env.BASE_URL}/upload.cgi?DEL=/DCIM/${filename}`, (err, res, body) => {
         if (err) throw err;
-        console.log(`Deleted ${filename} from card`);
+        if (body === 'ERROR') throw body;
+        console.log(body)
     });
 }
 
