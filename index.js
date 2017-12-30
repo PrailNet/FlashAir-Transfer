@@ -113,8 +113,24 @@ function dateFromCardInfo(date, time) {
     return new Date(year, month - 1, day);
 }
 
-function getAllImages(filename) {
+function timestampFromCardInfo(date,time) {
+    return (date << 16) | time;
+}
+
+function readLastItemTransferTimestamp()
+{
+
+
+}
+
+function writeLastItemTransferTimestamp(ts)
+{
+
+}
+
+function processImagesFromFolderOnCard(filename, taskList) {
     request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM/${filename}`, function (error, response, body) {
+        
         if (error) {
             return console.log('error:', error); // Print the error if one occurred
         }
@@ -122,15 +138,6 @@ function getAllImages(filename) {
         console.info(body);
 
         var lines = body.split('\r\n')
-        var q = async.queue(function (task, done) {
-            downloadImage(task.url, task.filename, task.timestamp)
-                .then(function () {
-                    done();
-                })
-                .catch(err => {
-                    console.error(err);
-                });
-        });
 
         for (var i = 0, len = lines.length; i < len; i++) {
             var line = lines[i];
@@ -149,14 +156,10 @@ function getAllImages(filename) {
                 if (filename) {
                     var fullPath = `${env.BASE_URL}${directory}/${filename}`;
                     console.log(fullPath);
-                    q.push({
+                    taskList.push({
                         url: fullPath,
                         filename: filename,
                         timestamp: timestamp
-                    }, function (err) {
-                        if (err) {
-                            console.log(`ERROR: ${err}`);
-                        }
                     });
                 }
             }
@@ -165,12 +168,13 @@ function getAllImages(filename) {
     })
 }
 
-const getImages = () => {
+const processFoldersOnCard = () => {
     request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM`, function (error, response, body) {
         if (error) {
             return console.log('error:', error); // Print the error if one occurred
         }
 
+        var taskList = [];
         var lines = body.split('\r\n')
 
         for (var i = 0, len = lines.length; i < len; i++) {
@@ -187,21 +191,41 @@ const getImages = () => {
 
                 if (attribute === '16' && filename !== 'EOSMISC') {
                     console.log(`Folder ${filename}`);
-                    getAllImages(filename);
+                    processImagesFromFolderOnCard(filename, taskList);
                 }
             }
         }
+
+        // tasks:
+        
+
     });
 }
+
+function startDownloads(taskList) {
+    var q = async.queue(function (task, done) {
+        downloadImage(task.url, task.filename, task.timestamp)
+            .then(function () {
+                done();
+            })
+            .catch(err => {
+                console.error(err);
+            });
+    });
+
+    q.push(taskList);
+
+}
+
 
 const runAll = () => {
     prefilightCheck().then((status) => {
         if (status === '1') {
             console.log('Updates')
-            getImages();
+            processFoldersOnCard();
         } else {
             console.log('No updates')
-            getImages();
+            processFoldersOnCard();
         }
     })
         .catch((err) => {
