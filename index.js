@@ -47,10 +47,11 @@ function downloadImage(address, filename, timestamp) {
                 console.log(`Finished downloading ${localFileName}\n`);
 
                 var finalFileName = generateFilename(timestamp, filename);
-                moveImage(localFileName, finalFileName);
-                deleteImageFromCard(filename);
+                moveImage(localFileName, finalFileName)
+                    .then(() => { resolve() })
+                    .catch((ex) => { });
 
-                resolve();
+                //resolve();
             });
 
 
@@ -79,13 +80,14 @@ function generateFilename(timestamp, filename) {
 }
 
 function moveImage(sourceFilename, destination) {
-    fse.ensureDir(destination.fullpath)
+    return fse.ensureDir(destination.fullpath)
         .then(() => {
             console.log('Created file structure...')
 
             fse.move(sourceFilename, destination.fullname)
                 .then(() => {
                     console.log(`Moved ${sourceFilename} to ${destination.fullname}`);
+                    deleteImageFromCard(sourceFilename);
                 })
                 .catch(err => {
                     throw err;
