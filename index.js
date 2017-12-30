@@ -67,20 +67,25 @@ function readImageMetaData(filename) {
     //TODO
 }
 
-function generateFilename(metadata) {
-    const fakeMeta = {
-        filenamne: 'IMG_1265.JPG',
-        date: new Date()
-    }
+function generateFilename(metadata, filename) {
     const meta = {
-        date: moment(fakeMeta.date).format('YYYY-MM-DD'),
-        year: moment(fakeMeta.date).format('YYYY')
+        date: moment(metadata.exif.DateTimeOriginal).format('YYYY-MM-DD'),
+        year: moment(metadata.exif.DateTimeOriginal).format('YYYY')
     }
-    return `${meta.year}/${meta.date}/${fakeMeta.filenamne}`; //TODO
+    return `${meta.year}/${meta.date}/${filename}`;
 }
 
 function moveImage(sourceFilename, destinationFilename) {
-    //TODO
+    console.log(`Moving ${sourceFilename} to ${destinationFilename}`);
+    fs.copyFile(sourceFilename, destinationFilename, (err) => {
+        if (err) throw err;
+        console.log(`${sourceFilename} was copied to ${destinationFilename}`);
+
+        fs.unlink(sourceFilename, (err) => {
+            if (err) throw err;
+            console.log(`Deleted ${sourceFilename}`);
+        });
+    });
 }
 
 function deleteImageFromCard(filename) {
