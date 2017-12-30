@@ -125,9 +125,13 @@ function getAllImages(filename) {
 
         var lines = body.split('\r\n')
         var q = async.queue(function (task, done) {
-            downloadImage(task.url, task.filename, task.timestamp).then(function () {
-                done();
-            });
+            downloadImage(task.url, task.filename, task.timestamp)
+                .then(function () {
+                    done();
+                })
+                .catch(err => {
+                    console.error(err);
+                });
         });
 
         for (var i = 0, len = lines.length; i < len; i++) {
@@ -194,14 +198,14 @@ const getImages = () => {
 
 const runAll = () => {
     prefilightCheck().then((status) => {
-            if (status === '1') {
-                console.log('Updates')
-                getImages();
-            } else {
-                console.log('No updates')
-                getImages();
-            }
-        })
+        if (status === '1') {
+            console.log('Updates')
+            getImages();
+        } else {
+            console.log('No updates')
+            getImages();
+        }
+    })
         .catch((err) => {
             console.log('Card seems to be unavailable')
         })
