@@ -40,10 +40,11 @@ function downloadImage(address, filename, timestamp) {
                 console.log(`Finished downloading ${localFileName}\n`);
 
                 var finalFileName = generateFilename(timestamp, filename);
-                moveImage(localFileName, finalFileName);
-                deleteImageFromCard(filename);
+                moveImage(localFileName, finalFileName)
+                    .then(() => { resolve() })
+                    .catch((ex) => { });
 
-                resolve();
+                //resolve();
             });
 
 
@@ -72,13 +73,16 @@ function generateFilename(timestamp, filename) {
 }
 
 function moveImage(sourceFilename, destination) {
-    fse.ensureDir(destination.fullpath)
+    return fse.ensureDir(destination.fullpath)
         .then(() => {
             console.log('Created file structure...')
 
             fse.move(sourceFilename, destination.fullname)
                 .then(() => {
                     console.log(`Moved ${sourceFilename} to ${destination.fullname}`);
+                    deleteImageFromCard(sourceFilename)
+                        .then(() => { resolve(); })
+                        .catch(err => { throw err; });
                 })
                 .catch(err => {
                     throw err;
@@ -90,11 +94,14 @@ function moveImage(sourceFilename, destination) {
 }
 
 function deleteImageFromCard(filename) {
-    console.log(`Deleting ${filename} from card...`)
-    request(`${env.BASE_URL}/upload.cgi?DEL=/DCIM/${filename}`, (err, res, body) => {
-        if (err) throw err;
-        if (body === 'ERROR') throw body;
-        console.log(body)
+    return new Promise(function (resolve, reject) {
+        console.log(`Deleting ${filename} from card...`)
+        request(`${env.BASE_URL}/upload.cgi?DEL=/DCIM/${filename}`, (err, res, body) => {
+            if (err) reject(err);
+            if (body === 'ERROR') reject(body);
+            console.log(body)
+            resolve();
+        });
     });
 }
 
