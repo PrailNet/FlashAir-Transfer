@@ -1,21 +1,23 @@
 const request = require('request');
 const fs = require('fs');
 const async = require('async');
+var JPEGDecoder = require('jpg-stream/decoder');
+
 
 require('dotenv').config()
 const env = process.env;
 
 function downloadImage(address, filename) {
-    
+
     return new Promise(function (resolve, reject) {
 
         var r = request(address);
         var localFileName = generateTempFilename(filename);
-        
+
         r.on('response', function (res) {
             console.log(`\nDownloading ${filename} to ${localFileName}`);
 
-            
+
             var stream = res.pipe(fs.createWriteStream(localFileName));
             stream.on('finish', function () {
                 console.log(`Finished downloading ${localFileName}\n`);
@@ -26,10 +28,10 @@ function downloadImage(address, filename) {
                 moveImage(localFileName, finalFileName);
                 deleteImageFromCard(filename);
 
-                
+
                 resolve();
             });
-            
+
 
 
         });
@@ -38,10 +40,22 @@ function downloadImage(address, filename) {
 }
 
 function generateTempFilename(filename) {
-    return  `./dl/${filename}.xfer`;
+    return `./dl/${filename}.xfer`;
 }
 
 function readImageMetaData(filename) {
+    fs.createReadStream('in.jpg')
+        .pipe(new JPEGDecoder)
+        .on('meta', function (meta) {
+            // meta contains an exif object as decoded by
+            // https://github.com/devongovett/exif-reader
+        })
+        .pipe(concat(function (frames) {
+            // frames is an array of frame objects (one for JPEGs)
+            // each element has a `pixels` property containing
+            // the raw RGB pixel data for that frame, as
+            // well as the width, height, etc.
+        }));
     //TODO
 }
 
