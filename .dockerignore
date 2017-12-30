@@ -2,3 +2,4 @@ node_modules/
 dest/
 dl/
 *.md
+.vscode/

@@ -59,3 +59,4 @@ typings/
 dest/
 dl/
 .DS_Store
+package-lock.json
