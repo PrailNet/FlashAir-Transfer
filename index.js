@@ -31,7 +31,7 @@ const prefilightCheck = () => {
     })
 }
 
-function downloadImage(address, filename) {
+function downloadImage(address, filename, timestamp) {
 
     return new Promise(function (resolve, reject) {
 
@@ -46,7 +46,7 @@ function downloadImage(address, filename) {
             stream.on('finish', function () {
                 console.log(`Finished downloading ${localFileName}\n`);
 
-                readImageMetaData(localFileName).then(function (metaData) {
+                readImageMetaData(localFileName, timestamp).then(function (metaData) {
                     console.info(metaData);
                     var finalFileName = generateFilename(metaData, filename);
                     moveImage(localFileName, finalFileName);
@@ -68,7 +68,7 @@ function generateTempFilename(filename) {
     return `${basePath}/${filename}.xfer`;
 }
 
-function readImageMetaData(filename) {
+function readImageMetaData(filename, timestamp) {
     return new Promise(function (resolve, reject) {
 
         if (filename.match(/\.jpg\.xfer$/i)) {
@@ -86,13 +86,21 @@ function readImageMetaData(filename) {
 
         // for video:
         if (filename.match(/\.mov\.xfer$/i)) {
-            //TODO
+            resolve({
+                exif: {
+                    DateTimeOriginal: timestamp
+                }
+            });
             return;
         }
 
         // for raw:
         if (filename.match(/\.raw\.xfer$/i)) {
-            //TODO
+            resolve({
+                exif: {
+                    DateTimeOriginal: timestamp
+                }
+            });
             return;
         }
     });
@@ -138,7 +146,17 @@ function deleteImageFromCard(filename) {
     });
 }
 
+function dateFromCardInfo(date, time) {
+    var day = date & 0b11111;
+    var month = (date >> 5) & 0b1111;
+    var year = ((date >> 9) & 0b1111111) + 1980;
 
+    //var second = (time & 0b11111) * 2;
+    //var minute = (time >> 5) & 0b111111;
+    //var hour = ((time >> 11) & 0b11111);
+
+    return new Date(year, month, day);
+}
 
 function getAllImages(filename) {
     request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM/${filename}`, function (error, response, body) {
@@ -146,9 +164,11 @@ function getAllImages(filename) {
             return console.log('error:', error); // Print the error if one occurred
         }
 
+        console.info(body);
+
         var lines = body.split('\r\n')
         var q = async.queue(function (task, done) {
-            downloadImage(task.url, task.filename).then(function () {
+            downloadImage(task.url, task.filename, task.timestamp).then(function () {
                 done();
             });
         });
@@ -162,12 +182,18 @@ function getAllImages(filename) {
                 var directory = splitLine[0];
                 var filename = splitLine[1];
 
+                var date = splitLine[4];
+                var time = splitLine[5];
+
+                var timestamp = dateFromCardInfo(date, time);
+
                 if (filename) {
                     var fullPath = `${env.BASE_URL}${directory}/${filename}`;
                     console.log(fullPath);
                     q.push({
                         url: fullPath,
-                        filename: filename
+                        filename: filename,
+                        timestamp: timestamp
                     }, function (err) {
                         if (err) {
                             console.log(`ERROR: ${err}`);
