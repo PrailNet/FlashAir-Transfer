@@ -5,7 +5,7 @@
   "repository": "git@github.com:PrailNet/FlashAir-Transfer.git",
   "author": "Noah Prail <nprail@filiosoft.com>",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "dependencies": {
     "async": "^2.5.0",
     "axios": "^0.17.1",
@@ -13,6 +13,7 @@
     "fs-extra": "^5.0.0",
     "moment": "^2.20.1"
   },
+  "bin": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
