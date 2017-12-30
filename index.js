@@ -2,6 +2,7 @@ const request = require('request');
 const fs = require('fs');
 const async = require('async');
 const axios = require('axios');
+const moment = require('moment');
 
 require('dotenv').config()
 const env = process.env;
@@ -13,16 +14,16 @@ if (!fs.existsSync(basePath)) {
 }
 
 function downloadImage(address, filename) {
-    
+
     return new Promise(function (resolve, reject) {
 
         var r = request(address);
         var localFileName = generateTempFilename(filename);
-        
+
         r.on('response', function (res) {
             console.log(`\nDownloading ${filename} to ${localFileName}`);
 
-            
+
             var stream = res.pipe(fs.createWriteStream(localFileName));
             stream.on('finish', function () {
                 console.log(`Finished downloading ${localFileName}\n`);
@@ -33,10 +34,10 @@ function downloadImage(address, filename) {
                 moveImage(localFileName, finalFileName);
                 deleteImageFromCard(filename);
 
-                
+
                 resolve();
             });
-            
+
 
 
         });
@@ -45,7 +46,7 @@ function downloadImage(address, filename) {
 }
 
 function generateTempFilename(filename) {
-    return  `./dl/${filename}.xfer`;
+    return `${basePath}/${filename}.xfer`;
 }
 
 function readImageMetaData(filename) {
@@ -53,7 +54,15 @@ function readImageMetaData(filename) {
 }
 
 function generateFilename(metadata) {
-    return `YYYY/YYYY-MM-DD/filename.ext`; //TODO
+    const fakeMeta = {
+        filenamne: 'IMG_1265.JPG',
+        date: new Date()
+    }
+    const meta = {
+        date: moment(fakeMeta.date).format('YYYY-MM-DD'),
+        year: moment(fakeMeta.date).format('YYYY')
+    }
+    return `${meta.year}/${meta.date}/${fakeMeta.filenamne}`; //TODO
 }
 
 function moveImage(sourceFilename, destinationFilename) {
