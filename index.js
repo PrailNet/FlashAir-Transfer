@@ -2,8 +2,6 @@ const request = require('request');
 const fs = require('fs');
 const fse = require('fs-extra');
 const async = require('async');
-
-const axios = require('axios');
 const moment = require('moment');
 
 require('dotenv').config()
