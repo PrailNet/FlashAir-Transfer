@@ -4,6 +4,7 @@ const async = require('async');
 var JPEGDecoder = require('jpg-stream/decoder');
 
 const axios = require('axios');
+const moment = require('moment');
 
 require('dotenv').config()
 const env = process.env;
@@ -48,7 +49,7 @@ function downloadImage(address, filename) {
 }
 
 function generateTempFilename(filename) {
-    return `./dl/${filename}.xfer`;
+    return `${basePath}/${filename}.xfer`;
 }
 
 function readImageMetaData(filename) {
@@ -83,7 +84,15 @@ function readImageMetaData(filename) {
 }
 
 function generateFilename(metadata) {
-    return `YYYY/YYYY-MM-DD/filename.ext`; //TODO
+    const fakeMeta = {
+        filenamne: 'IMG_1265.JPG',
+        date: new Date()
+    }
+    const meta = {
+        date: moment(fakeMeta.date).format('YYYY-MM-DD'),
+        year: moment(fakeMeta.date).format('YYYY')
+    }
+    return `${meta.year}/${meta.date}/${fakeMeta.filenamne}`; //TODO
 }
 
 function moveImage(sourceFilename, destinationFilename) {
