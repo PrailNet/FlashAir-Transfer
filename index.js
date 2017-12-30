@@ -1,9 +1,16 @@
 const request = require('request');
 const fs = require('fs');
 const async = require('async');
+const axios = require('axios');
 
 require('dotenv').config()
 const env = process.env;
+
+const basePath = env.BASE_PATH || './dl';
+
+if (!fs.existsSync(basePath)) {
+    fs.mkdirSync(basePath);
+}
 
 function downloadImage(address, filename) {
     return new Promise(function (resolve, reject) {
@@ -11,7 +18,7 @@ function downloadImage(address, filename) {
         var r = request(address);
 
         r.on('response', function (res) {
-            var filepath = `./dl/${filename}`;
+            var filepath = `${basePath}/${filename}`;
             console.log(`\nDownloading ${filename} to ${filepath}`);
 
             var stream = res.pipe(fs.createWriteStream(filepath));
@@ -19,7 +26,7 @@ function downloadImage(address, filename) {
                 console.log(`Finished downloading ${filepath}\n`);
                 resolve();
             });
-        
+
 
         });
 
