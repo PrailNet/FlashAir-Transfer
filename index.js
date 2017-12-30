@@ -13,25 +13,58 @@ if (!fs.existsSync(basePath)) {
 }
 
 function downloadImage(address, filename) {
+    
     return new Promise(function (resolve, reject) {
 
         var r = request(address);
-
+        var localFileName = generateTempFilename(filename);
+        
         r.on('response', function (res) {
-            var filepath = `${basePath}/${filename}`;
-            console.log(`\nDownloading ${filename} to ${filepath}`);
+            console.log(`\nDownloading ${filename} to ${localFileName}`);
 
-            var stream = res.pipe(fs.createWriteStream(filepath));
+            
+            var stream = res.pipe(fs.createWriteStream(localFileName));
             stream.on('finish', function () {
-                console.log(`Finished downloading ${filepath}\n`);
+                console.log(`Finished downloading ${localFileName}\n`);
+
+                //TODO
+                var metaData = readImageMetaData(localFileName);
+                var finalFileName = generateFilename(metaData);
+                moveImage(localFileName, finalFileName);
+                deleteImageFromCard(filename);
+
+                
                 resolve();
             });
+            
 
 
         });
 
     });
 }
+
+function generateTempFilename(filename) {
+    return  `./dl/${filename}.xfer`;
+}
+
+function readImageMetaData(filename) {
+    //TODO
+}
+
+function generateFilename(metadata) {
+    return `YYYY/YYYY-MM-DD/filename.ext`; //TODO
+}
+
+function moveImage(sourceFilename, destinationFilename) {
+    //TODO
+}
+
+function deleteImageFromCard(filename) {
+    //TODO
+}
+
+
 
 function getAllImages(filename) {
     request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM/${filename}`, function (error, response, body) {
