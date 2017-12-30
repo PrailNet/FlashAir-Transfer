@@ -76,7 +76,6 @@ function generateFilename(metadata, filename) {
 }
 
 function moveImage(sourceFilename, destinationFilename) {
-    console.log(`Moving ${sourceFilename} to ${destinationFilename}`);
     fs.copyFile(sourceFilename, destinationFilename, (err) => {
         if (err) throw err;
         console.log(`${sourceFilename} was copied to ${destinationFilename}`);
@@ -89,7 +88,10 @@ function moveImage(sourceFilename, destinationFilename) {
 }
 
 function deleteImageFromCard(filename) {
-    //TODO
+    fs.unlink(filename, (err) => {
+        if (err) throw err;
+        console.log(`Deleted ${filename} from card`);
+    });
 }
 
 
