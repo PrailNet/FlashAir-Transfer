@@ -22,12 +22,13 @@ const prefilightCheck = () => {
         if (err) throw err;
 
         if (body === '1') {
-            console.log('Updates')
+            console.log('Updates');
         }
         if (body === '0') {
-            console.log('No updates')
+            console.log('No updates');
+            // process.exit(0) // exit process if no updates
         }
-        console.log(`Update Status: ${body}`)
+        return body;
     })
 }
 
@@ -206,31 +207,39 @@ function getAllImages(filename) {
     })
 }
 
-prefilightCheck()
 
-request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM`, function (error, response, body) {
-    if (error) {
-        return console.log('error:', error); // Print the error if one occurred
-    }
+const runAll = () => {
 
-    var lines = body.split('\r\n')
-
-    for (var i = 0, len = lines.length; i < len; i++) {
-        var line = lines[i].trim();
-        if (line !== 'WLANSD_FILELIST') {
-
-            var splitLine = line.split(',');
-            var directory = splitLine[0];
-            var filename = splitLine[1];
-            var size = splitLine[2];
-            var attribute = splitLine[3];
-            var date = splitLine[4];
-            var time = splitLine[5];
-
-            if (attribute === '16' && filename !== 'EOSMISC') {
-                console.log(`Folder ${filename}`);
-                getAllImages(filename);
+    console.log(prefilightCheck())
+    if (prefilightCheck() === '1') {
+        request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM`, function (error, response, body) {
+            if (error) {
+                return console.log('error:', error); // Print the error if one occurred
             }
-        }
+
+            var lines = body.split('\r\n')
+
+            for (var i = 0, len = lines.length; i < len; i++) {
+                var line = lines[i].trim();
+                if (line !== 'WLANSD_FILELIST') {
+
+                    var splitLine = line.split(',');
+                    var directory = splitLine[0];
+                    var filename = splitLine[1];
+                    var size = splitLine[2];
+                    var attribute = splitLine[3];
+                    var date = splitLine[4];
+                    var time = splitLine[5];
+
+                    if (attribute === '16' && filename !== 'EOSMISC') {
+                        console.log(`Folder ${filename}`);
+                        getAllImages(filename);
+                    }
+                }
+            }
+        });
     }
-});
+}
+
+runAll();
+const schedule = setInterval(runAll, 15000);
