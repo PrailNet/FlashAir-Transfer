@@ -82,7 +82,9 @@ function moveImage(sourceFilename, destination) {
             fse.move(sourceFilename, destination.fullname)
                 .then(() => {
                     console.log(`Moved ${sourceFilename} to ${destination.fullname}`);
-                    deleteImageFromCard(sourceFilename);
+                    deleteImageFromCard(sourceFilename)
+                        .then(() => { resolve(); })
+                        .catch(err => { throw err; });
                 })
                 .catch(err => {
                     throw err;
@@ -94,11 +96,14 @@ function moveImage(sourceFilename, destination) {
 }
 
 function deleteImageFromCard(filename) {
-    console.log(`Deleting ${filename} from card...`)
-    request(`${env.BASE_URL}/upload.cgi?DEL=/DCIM/${filename}`, (err, res, body) => {
-        if (err) throw err;
-        if (body === 'ERROR') throw body;
-        console.log(body)
+    return new Promise(function (resolve, reject) {
+        console.log(`Deleting ${filename} from card...`)
+        request(`${env.BASE_URL}/upload.cgi?DEL=/DCIM/${filename}`, (err, res, body) => {
+            if (err) reject(err);
+            if (body === 'ERROR') reject(body);
+            console.log(body)
+            resolve();
+        });
     });
 }
 
@@ -161,38 +166,38 @@ function getAllImages(filename) {
 
 const runAll = () => {
     prefilightCheck().then((status) => {
-            if (status === '1') {
-                console.log('Updates')
-                request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM`, function (error, response, body) {
-                    if (error) {
-                        return console.log('error:', error); // Print the error if one occurred
-                    }
+        if (status === '1') {
+            console.log('Updates')
+            request(`${env.BASE_URL}/command.cgi?op=100&DIR=/DCIM`, function (error, response, body) {
+                if (error) {
+                    return console.log('error:', error); // Print the error if one occurred
+                }
 
-                    var lines = body.split('\r\n')
+                var lines = body.split('\r\n')
 
-                    for (var i = 0, len = lines.length; i < len; i++) {
-                        var line = lines[i].trim();
-                        if (line !== 'WLANSD_FILELIST') {
+                for (var i = 0, len = lines.length; i < len; i++) {
+                    var line = lines[i].trim();
+                    if (line !== 'WLANSD_FILELIST') {
 
-                            var splitLine = line.split(',');
-                            var directory = splitLine[0];
-                            var filename = splitLine[1];
-                            var size = splitLine[2];
-                            var attribute = splitLine[3];
-                            var date = splitLine[4];
-                            var time = splitLine[5];
+                        var splitLine = line.split(',');
+                        var directory = splitLine[0];
+                        var filename = splitLine[1];
+                        var size = splitLine[2];
+                        var attribute = splitLine[3];
+                        var date = splitLine[4];
+                        var time = splitLine[5];
 
-                            if (attribute === '16' && filename !== 'EOSMISC') {
-                                console.log(`Folder ${filename}`);
-                                getAllImages(filename);
-                            }
+                        if (attribute === '16' && filename !== 'EOSMISC') {
+                            console.log(`Folder ${filename}`);
+                            getAllImages(filename);
                         }
                     }
-                });
-            } else {
-                console.log('No updates')
-            }
-        })
+                }
+            });
+        } else {
+            console.log('No updates')
+        }
+    })
         .catch((err) => {
             console.log('Card seems to be unavailable')
         })
