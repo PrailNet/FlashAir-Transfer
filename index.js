@@ -27,7 +27,11 @@ const prefilightCheck = () => {
 function downloadImage(address, filename, timestamp) {
 
     return new Promise(function (resolve, reject) {
-        axios.get(address)
+        axios.get({
+                method: 'get',
+                url: address,
+                responseType: 'stream'
+            })
             .then(res => {
                 const localFileName = generateTempFilename(filename);
 
