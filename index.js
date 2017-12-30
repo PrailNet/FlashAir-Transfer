@@ -2,7 +2,6 @@ const request = require('request');
 const fs = require('fs');
 const fse = require('fs-extra');
 const async = require('async');
-var JPEGDecoder = require('jpg-stream/decoder');
 
 const axios = require('axios');
 const moment = require('moment');
@@ -47,13 +46,9 @@ function downloadImage(address, filename, timestamp) {
             stream.on('finish', function () {
                 console.log(`Finished downloading ${localFileName}\n`);
 
-                readImageMetaData(localFileName, timestamp).then(function (metaData) {
-                    console.info(metaData);
-                    var finalFileName = generateFilename(metaData, filename);
-                    moveImage(localFileName, finalFileName);
-                    deleteImageFromCard(filename);
-                });
-
+                var finalFileName = generateFilename(timestamp, filename);
+                moveImage(localFileName, finalFileName);
+                deleteImageFromCard(filename);
 
                 resolve();
             });
@@ -69,49 +64,12 @@ function generateTempFilename(filename) {
     return `${basePath}/${filename}.xfer`;
 }
 
-function readImageMetaData(filename, timestamp) {
-    return new Promise(function (resolve, reject) {
-
-        if (filename.match(/\.jpg\.xfer$/i)) {
-            // for JPEG files:
-            fs.createReadStream(filename)
-                .pipe(new JPEGDecoder)
-                .on('meta', function (meta) {
-                    resolve(meta);
-                    // meta contains an exif object as decoded by
-                    // https://github.com/devongovett/exif-reader
-                });
-            return;
-        }
 
 
-        // for video:
-        if (filename.match(/\.mov\.xfer$/i)) {
-            resolve({
-                exif: {
-                    DateTimeOriginal: timestamp
-                }
-            });
-            return;
-        }
-
-        // for raw:
-        if (filename.match(/\.raw\.xfer$/i)) {
-            resolve({
-                exif: {
-                    DateTimeOriginal: timestamp
-                }
-            });
-            return;
-        }
-    });
-
-}
-
-function generateFilename(metadata, filename) {
+function generateFilename(timestamp, filename) {
     const meta = {
-        date: moment(metadata.exif.DateTimeOriginal).format('YYYY-MM-DD'),
-        year: moment(metadata.exif.DateTimeOriginal).format('YYYY')
+        date: moment(timestamp).format('YYYY-MM-DD'),
+        year: moment(timestamp).format('YYYY')
     }
     let path = `${destPath}/${meta.year}/${meta.date}`;
     return {
@@ -152,11 +110,7 @@ function dateFromCardInfo(date, time) {
     var month = (date >> 5) & 0b1111;
     var year = ((date >> 9) & 0b1111111) + 1980;
 
-    //var second = (time & 0b11111) * 2;
-    //var minute = (time >> 5) & 0b111111;
-    //var hour = ((time >> 11) & 0b11111);
-
-    return new Date(year, month, day);
+    return new Date(year, month - 1, day);
 }
 
 function getAllImages(filename) {

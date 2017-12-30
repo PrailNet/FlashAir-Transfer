@@ -400,10 +400,6 @@ execa@^0.7.0:
     signal-exit "^3.0.0"
     strip-eof "^1.0.0"
 
-exif-reader@1.0.2, exif-reader@^1.0.0:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/exif-reader/-/exif-reader-1.0.2.tgz#02408b97b61028ea4f45e5b893a836f9aa28ac4f"
-
 expand-brackets@^0.1.4:
   version "0.1.5"
   resolved "https://registry.npmjs.org/expand-brackets/-/expand-brackets-0.1.5.tgz#df07284e342a807cd733ac5af72411e581d1177b"
@@ -802,13 +798,6 @@ isstream@~0.1.2:
   version "0.1.2"
   resolved "https://registry.npmjs.org/isstream/-/isstream-0.1.2.tgz#47e63f7af55afa6f92e1500e690eb8b8529c099a"
 
-jpg-stream@1.1.2:
-  version "1.1.2"
-  resolved "https://registry.yarnpkg.com/jpg-stream/-/jpg-stream-1.1.2.tgz#4dba159d9d19368df21318f648cee980a72be407"
-  dependencies:
-    exif-reader "^1.0.0"
-    pixel-stream "^1.0.3"
-
 jsbn@~0.1.0:
   version "0.1.1"
   resolved "https://registry.npmjs.org/jsbn/-/jsbn-0.1.1.tgz#a5e654c2e5a2deb5f201d96cefbca80c0ef2f513"
@@ -1171,12 +1160,6 @@ pify@^2.3.0:
   version "2.3.0"
   resolved "https://registry.npmjs.org/pify/-/pify-2.3.0.tgz#ed141a6ac043a849ea588498e7dca8b15330e90c"
 
-pixel-stream@^1.0.3:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/pixel-stream/-/pixel-stream-1.0.3.tgz#53e8c54b21d5508393b53bcb32b64a7755f1fa5e"
-  dependencies:
-    shallow-copy "0.0.1"
-
 prepend-http@^1.0.1:
   version "1.0.4"
   resolved "https://registry.npmjs.org/prepend-http/-/prepend-http-1.0.4.tgz#d4f4562b0ce3696e41ac52d0e002e57a635dc6dc"
@@ -1360,10 +1343,6 @@ set-blocking@~2.0.0:
 set-immediate-shim@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npmjs.org/set-immediate-shim/-/set-immediate-shim-1.0.1.tgz#4b2b1b27eb808a9f8dcc481a58e5e56f599f3f61"
-
-shallow-copy@0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/shallow-copy/-/shallow-copy-0.0.1.tgz#415f42702d73d810330292cc5ee86eae1a11a170"
 
 shebang-command@^1.2.0:
   version "1.2.0"
