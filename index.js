@@ -1,6 +1,8 @@
 const request = require('request');
 const fs = require('fs');
 const async = require('async');
+var JPEGDecoder = require('jpg-stream/decoder');
+
 const axios = require('axios');
 const moment = require('moment');
 
@@ -50,6 +52,18 @@ function generateTempFilename(filename) {
 }
 
 function readImageMetaData(filename) {
+    fs.createReadStream('in.jpg')
+        .pipe(new JPEGDecoder)
+        .on('meta', function (meta) {
+            // meta contains an exif object as decoded by
+            // https://github.com/devongovett/exif-reader
+        })
+        .pipe(concat(function (frames) {
+            // frames is an array of frame objects (one for JPEGs)
+            // each element has a `pixels` property containing
+            // the raw RGB pixel data for that frame, as
+            // well as the width, height, etc.
+        }));
     //TODO
 }
 
